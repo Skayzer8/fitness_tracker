@@ -9,28 +9,28 @@ from typing import List
 class InfoMessage:
     """Информационное сообщение о тренировке."""
 
-    INF_MESSAGE = ('Тип тренировки: {}; '
-                   'Длительность: {:.3f} ч.; '
-                   'Дистанция: {:.3f} км; '
-                   'Ср. скорость: {:.3f} км/ч; '
-                   'Потрачено ккал: {:.3f}.')
+    INF_MESSAGE = ('Тип тренировки: {training_type}; '
+                   'Длительность: {duration:.3f} ч.; '
+                   'Дистанция: {distance:.3f} км; '
+                   'Ср. скорость: {speed:.3f} км/ч; '
+                   'Потрачено ккал: {calories:.3f}.')
 
     training_type: str
     duration: float
+    distance: float
     speed: float
     calories: float
-    distance: float
 
     def get_message(self) -> str:
         """Вывести информационное сообщение о результатах тренировки."""
-        return self.INF_MESSAGE.format(*(asdict(self)).values())
+        return self.INF_MESSAGE.format(**asdict(self))
 
 
 class Training:
     """Базовый класс тренировки.
     Атрибуты:
         action, int — количество совершённых действий (число шагов, гребков);
-        duration_h, float — длительность тренировки в часах;
+        duration, float — длительность тренировки в часах;
         weight, float — вес спортсмена.
         LEN_STEP — расстояние, за один шаг или гребок в м.
         M_IN_KM — константа для перевода значений из метров в километры."""
@@ -54,8 +54,9 @@ class Training:
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
-        raise NotImplementedError('Метод определения количества \
-            затраченных калорий (get_spent_calories) не определен')
+        raise NotImplementedError(
+            'Метод определения количества затраченных калорий'
+            '(get_spent_calories) не определен')
 
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
@@ -70,9 +71,6 @@ class Running(Training):
     """Тренировка: бег.
     Все свойства и методы класса без изменений наследуются от базового класса.
     За исключением метода расчёта калорий, который переопределен ниже."""
-
-    def __init__(self, action: int, duration: float, weight: float):
-        super().__init__(action, duration, weight)
 
     def get_spent_calories(self) -> float:
         return ((self.COEF_CALORIE_1 * self.get_mean_speed()
@@ -140,14 +138,17 @@ class Swimming(Training):
                * self.COEF_CALORIE_2 * self.weight)
 
 
-def read_package(workout_type: str, data: List[int]) -> Training:
+def read_package(workout_type: str, data: List[float]) -> Training:
     """Прочитать данные полученные от датчиков."""
     class_data = {
         "SWM": Swimming,
         "RUN": Running,
         "WLK": SportsWalking
     }
-    return class_data[workout_type](*data)
+    if workout_type in class_data:
+        return class_data[workout_type](*data)
+    else:
+        raise TypeError('Вид активности не определен (Код ошибки: 1.02)')
 
 
 def main(training: Training) -> None:
@@ -168,5 +169,6 @@ if __name__ == '__main__':
             training = read_package(workout_type, data)
             main(training)
         except (TypeError):
-            print('Упс! Что-то пошло не так! \
-                Обратитесь в службу поддержки (Код ошибки: 1.01)')
+            print(
+                'Упс! Что-то пошло не так!'
+                'Обратитесь в службу поддержки (Код ошибки: 1.01)')
