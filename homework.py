@@ -1,43 +1,43 @@
 """ Программа представляет собой программный модуль фитнес-трекера,
     который обрабатывает данные для трех видов тренировок:
     для бега, спортивной ходьбы и плавания."""
+from dataclasses import dataclass, asdict
+from typing import List
 
 
+@dataclass
 class InfoMessage:
     """Информационное сообщение о тренировке."""
-    def __init__(
-            self,
-            training_type: str,
-            duration: float,
-            distance: float,
-            speed: float,
-            calories: float) -> None:
-        self.training_type = training_type
-        self.duration = duration
-        self.distance = distance
-        self.speed = speed
-        self.calories = calories
+
+    INF_MESSAGE = ('Тип тренировки: {}; '
+                   'Длительность: {:.3f} ч.; '
+                   'Дистанция: {:.3f} км; '
+                   'Ср. скорость: {:.3f} км/ч; '
+                   'Потрачено ккал: {:.3f}.')
+
+    training_type: str
+    duration: float
+    speed: float
+    calories: float
+    distance: float
 
     def get_message(self) -> str:
         """Вывести информационное сообщение о результатах тренировки."""
-        return (f'Тип тренировки: {self.training_type}; '
-                f'Длительность: {self.duration:.3f} ч.; '
-                f'Дистанция: {self.distance:.3f} км; '
-                f'Ср. скорость: {self.speed:.3f} км/ч; '
-                f'Потрачено ккал: {self.calories:.3f}.')
+        return self.INF_MESSAGE.format(*(asdict(self)).values())
 
 
 class Training:
     """Базовый класс тренировки.
     Атрибуты:
         action, int — количество совершённых действий (число шагов, гребков);
-        duration, float — длительность тренировки;
+        duration_h, float — длительность тренировки в часах;
         weight, float — вес спортсмена.
         LEN_STEP — расстояние, за один шаг или гребок в м.
         M_IN_KM — константа для перевода значений из метров в километры."""
 
     LEN_STEP: float = 0.65
     M_IN_KM: int = 1000
+    DURATION_MIN: float = 60
 
     def __init__(self, action: int, duration: float, weight: float) -> None:
         self.action = action
@@ -54,7 +54,8 @@ class Training:
 
     def get_spent_calories(self) -> float:
         """Получить количество затраченных калорий."""
-        pass
+        raise NotImplementedError('Метод определения количества \
+            затраченных калорий (get_spent_calories) не определен')
 
     def show_training_info(self) -> InfoMessage:
         """Вернуть информационное сообщение о выполненной тренировке."""
@@ -64,9 +65,8 @@ class Training:
 
 
 class Running(Training):
-    cf_calorie_1: float = 18
-    cf_calorie_2: float = 20
-    time_im_min: float = 60
+    COEF_CALORIE_1: float = 18
+    COEF_CALORIE_2: float = 20
     """Тренировка: бег.
     Все свойства и методы класса без изменений наследуются от базового класса.
     За исключением метода расчёта калорий, который переопределен ниже."""
@@ -75,9 +75,10 @@ class Running(Training):
         super().__init__(action, duration, weight)
 
     def get_spent_calories(self) -> float:
-        return ((self.cf_calorie_1 * self.get_mean_speed() - self.cf_calorie_2)
+        return ((self.COEF_CALORIE_1 * self.get_mean_speed()
+                - self.COEF_CALORIE_2)
                 * self.weight / self.M_IN_KM
-                * self.duration * self.time_im_min)
+                * self.duration * self.DURATION_MIN)
 
 
 class SportsWalking(Training):
@@ -85,10 +86,9 @@ class SportsWalking(Training):
     В конструкторе этого класса принимается дополнительный параметр:
         height — рост спортсмена."""
 
-    cf_calorie_3: float = 0.035
-    cf_calorie_4: float = 0.029
-    cf_calorie_7: float = 2
-    time_im_min: float = 60
+    COEF_CALORIE_1: float = 0.035
+    COEF_CALORIE_2: float = 0.029
+    COEF_CALORIE_3: float = 2
 
     def __init__(
             self,
@@ -101,10 +101,10 @@ class SportsWalking(Training):
 
     def get_spent_calories(self) -> float:
         """Получить количество калорий."""
-        return ((self.cf_calorie_3 * self.weight + (self.get_mean_speed()
-                ** self.cf_calorie_7 // self.height)
-                * self.cf_calorie_4 * self.weight) * self.duration
-                * self.time_im_min)
+        return ((self.COEF_CALORIE_1 * self.weight + (self.get_mean_speed()
+                ** self.COEF_CALORIE_3 // self.height)
+                * self.COEF_CALORIE_2 * self.weight) * self.duration
+                * self.DURATION_MIN)
 
 
 class Swimming(Training):
@@ -114,8 +114,8 @@ class Swimming(Training):
     count_pool — сколько раз пользователь переплыл бассейн.
     Переопределяются методы расчета калорий и скорости."""
 
-    cf_calorie_5: float = 1.1
-    cf_calorie_6: float = 2
+    COEF_CALORIE_1: float = 1.1
+    COEF_CALORIE_2: float = 2
     LEN_STEP: float = 1.38
 
     def __init__(
@@ -136,11 +136,11 @@ class Swimming(Training):
 
     def get_spent_calories(self) -> float:
         """Получить количество калорий."""
-        return((self.get_mean_speed() + self.cf_calorie_5)
-               * self.cf_calorie_6 * self.weight)
+        return((self.get_mean_speed() + self.COEF_CALORIE_1)
+               * self.COEF_CALORIE_2 * self.weight)
 
 
-def read_package(workout_type: str, data: list) -> Training:
+def read_package(workout_type: str, data: List[int]) -> Training:
     """Прочитать данные полученные от датчиков."""
     class_data = {
         "SWM": Swimming,
@@ -164,5 +164,9 @@ if __name__ == '__main__':
     ]
 
     for workout_type, data in packages:
-        training = read_package(workout_type, data)
-        main(training)
+        try:
+            training = read_package(workout_type, data)
+            main(training)
+        except (TypeError):
+            print('Упс! Что-то пошло не так! \
+                Обратитесь в службу поддержки (Код ошибки: 1.01)')
